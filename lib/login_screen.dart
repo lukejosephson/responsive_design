@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
+import 'package:responsive_design/auth_service.dart';
+import 'package:responsive_design/profile_card.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,6 +21,10 @@ class _LoginScreenState extends State<LoginScreen> {
   // objext used for extracting data from fields
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  bool _isLoading = false;  // spinning circle feedback
+
+  final _authService = AuthService();
 
   @override
   void dispose() {
@@ -48,7 +54,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height:20),
                 _password(),
                 const SizedBox(height:30),
-                _loginButton()
+
+                // show a spinning circle while logging in
+                _isLoading ? const CircularProgressIndicator() : _loginButton()
               ],
             ),
           ),
@@ -122,17 +130,42 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _submitLogin() {
-    // call all of the validator functions in the Form
-    // I am certain currentState is not going to be null so I can put the bang at the end to get rid of error
-    if (_formKey.currentState!.validate()) {
-      final username = _usernameController.text.trim();
-      final password = _passwordController.text; // captured password
-      
-      // proceed with authentication using username and password
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('logging in user $username'))
+  void _submitLogin() async {
+
+    if (!_formKey.currentState!.validate()) return;
+
+    // start spinnning the progresss indicator
+    setState(() => _isLoading = true);
+
+    // call the sign in function
+    final email = _usernameController.text;
+    final password = _passwordController.text;
+
+    try {
+      await _authService.signIn(email: email, password: password);
+
+      // from the inherited State we can check to make sure the 
+      // signing widget is still on the screen
+      if (!mounted) return; // TODO: signout?
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const ProfileCard())
       );
     }
-  }
+    catch (e) {
+      if (!mounted) return; // TODO: error popup (Toast)
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+    finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  } // _submitLogin
 }
