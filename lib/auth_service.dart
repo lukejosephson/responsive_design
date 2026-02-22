@@ -11,8 +11,8 @@ class AuthService {
   }) async {
     try {
       final UserCredential credential = await _auth.signInWithEmailAndPassword(
-      email: email, 
-      password: password,
+        email: email,
+        password: password,
       );
       return credential.user;
     } on FirebaseAuthException catch (e) {
@@ -32,5 +32,29 @@ class AuthService {
   // sign out method
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  Future<User?> signUp({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final UserCredential credential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
+      return credential.user;
+    } on FirebaseAuthException catch (e) {
+      // Handle specific Firebase signup errors
+      if (e.code == 'email-already-in-use') {
+        throw Exception('Email already registered. Please log in.');
+      } else if (e.code == 'weak-password') {
+        throw Exception('Password is too weak.');
+      } else if (e.code == 'invalid-email') {
+        throw Exception('Invalid email address.');
+      } else {
+        throw Exception(e.message ?? 'An unknown error occurred.');
+      }
+    } catch (e) {
+      throw Exception('System error: $e');
+    }
   }
 }

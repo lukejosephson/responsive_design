@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:responsive_design/account_screen.dart';
 import 'package:responsive_design/auth_service.dart';
-import 'package:responsive_design/profile_card.dart';
+import 'package:responsive_design/success_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? logoutMessage;
+  final String? signupMessage;
+  
+  const LoginScreen({
+    super.key,
+    this.logoutMessage,
+    this.signupMessage,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -25,6 +33,33 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;  // spinning circle feedback
 
   final _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Show message if provided (either from logout or signup)
+    if (widget.logoutMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Fluttertoast.showToast(
+          msg: widget.logoutMessage!,
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+      });
+    } else if (widget.signupMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Fluttertoast.showToast(
+          msg: widget.signupMessage!,
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -56,7 +91,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height:30),
 
                 // show a spinning circle while logging in
-                _isLoading ? const CircularProgressIndicator() : _loginButton()
+                _isLoading ? const CircularProgressIndicator() : _loginButton(),
+                const SizedBox(height:20),
+                _createAccountButton()
               ],
             ),
           ),
@@ -83,7 +120,10 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Please enter your username';
+          return 'Please enter your email';
+        }
+        if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value)) {
+          return 'Please enter a valid email address';
         }
         return null;
       },
@@ -114,6 +154,18 @@ class _LoginScreenState extends State<LoginScreen> {
         if (value.length < 8) {
           return 'Password must be at least 8 characters';
         }
+        if (!value.contains(RegExp(r'[A-Z]'))) {
+          return 'Password must contain at least one uppercase letter';
+        }
+        if (!value.contains(RegExp(r'[a-z]'))) {
+          return 'Password must contain at least one lowercase letter';
+        }
+        if (!value.contains(RegExp(r'[0-9]'))) {
+          return 'Password must contain at least one digit';
+        }
+        if (!value.contains(RegExp(r'[^\w\s]'))) {
+          return 'Password must contain at least one symbol';
+        }
         return null;
       },
     );
@@ -127,6 +179,17 @@ class _LoginScreenState extends State<LoginScreen> {
         textStyle: const TextStyle(fontSize: 18),
       ),
       child: const Text('Login')
+    );
+  }
+
+  Widget _createAccountButton() {
+    return TextButton(
+      onPressed: () {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const AccountScreen()),
+        );
+      },
+      child: const Text('New here? Create an account'),
     );
   }
 
@@ -146,20 +209,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // from the inherited State we can check to make sure the 
       // signing widget is still on the screen
-      if (!mounted) return; // TODO: signout?
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const ProfileCard())
-      );
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const SuccessScreen())
+        );
+      }
     }
     catch (e) {
-      if (!mounted) return; // TODO: error popup (Toast)
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Colors.red,
-        ),
+      Fluttertoast.showToast(
+        msg: 'Check that your username and password are correct. \n\n $e',
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
       );
     }
     finally {

@@ -4,7 +4,7 @@
     - create an account screen by adding button to login screen
     - check for errors like account already exists
     - reset password
-    - on successful login go to a sucess screen (and not profile screen)
+    - on successful login go to a success screen (and not profile screen)
     - on successful crreate account navigate back to login screen
         - first and last name
         - username
